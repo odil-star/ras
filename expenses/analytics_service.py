@@ -16,9 +16,13 @@ import logging
 from datetime import date, timedelta
 from typing import Any
 
-import numpy as np
-import pandas as pd
-from sklearn.linear_model import LinearRegression
+try:
+    import numpy as np
+    import pandas as pd
+    from sklearn.linear_model import LinearRegression
+    ANALYTICS_AVAILABLE = True
+except ImportError:
+    ANALYTICS_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 

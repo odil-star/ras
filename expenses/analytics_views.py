@@ -21,7 +21,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .analytics_service import AnalyticsService
+from .analytics_service import AnalyticsService, ANALYTICS_AVAILABLE
 from .analytics_serializers import (
     AnomalyRecordSerializer,
     CategoryCorrectionSerializer,
@@ -48,6 +48,13 @@ def _server_error(exc: Exception, context: str) -> Response:
     )
 
 
+def _unavailable_response() -> Response:
+    return Response(
+        {'error': 'Аналитика недоступна: numpy/pandas/scikit-learn не установлены'},
+        status=status.HTTP_503_SERVICE_UNAVAILABLE,
+    )
+
+
 # ── Forecast ──────────────────────────────────────────────────────────────────
 
 class ForecastView(APIView):
@@ -55,6 +62,8 @@ class ForecastView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        if not ANALYTICS_AVAILABLE:
+            return _unavailable_response()
         try:
             data = _svc(request).calculate_monthly_forecast()
             return Response(data)
@@ -69,6 +78,8 @@ class CategoryAnalysisView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        if not ANALYTICS_AVAILABLE:
+            return _unavailable_response()
         try:
             data = _svc(request).get_category_analysis()
             return Response({'categories': data})
@@ -83,6 +94,8 @@ class AnomalyListView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        if not ANALYTICS_AVAILABLE:
+            return _unavailable_response()
         try:
             z = getattr(settings, 'ANALYTICS_ANOMALY_Z_THRESHOLD', 2.0)
             data = _svc(request).detect_anomalies(z_threshold=z)
@@ -115,6 +128,8 @@ class SavingsTimelineView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        if not ANALYTICS_AVAILABLE:
+            return _unavailable_response()
         try:
             months = int(request.query_params.get('months', 6))
             months = min(max(months, 2), 24)
@@ -131,6 +146,8 @@ class RecommendationsView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        if not ANALYTICS_AVAILABLE:
+            return _unavailable_response()
         try:
             recs = _svc(request).generate_recommendations()
             return Response({'recommendations': recs})
@@ -235,6 +252,8 @@ class SaveSnapshotView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        if not ANALYTICS_AVAILABLE:
+            return _unavailable_response()
         year  = request.data.get('year')
         month = request.data.get('month')
         if not year or not month:
@@ -253,6 +272,8 @@ class SuggestCategoryView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        if not ANALYTICS_AVAILABLE:
+            return _unavailable_response()
         try:
             title = request.query_params.get('title', '')
             if not title:
